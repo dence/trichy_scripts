@@ -23,9 +23,8 @@ for file in sys.argv[1:len(sys.argv)]:
                 	currTaxID=lineParts[3]
 		currCount = currFileCounts.setdefault(currTaxID,0)
 		currFileCounts[currTaxID] = currCount + 1
+		taxIDs.setdefault(currTaxID,1)		
 	readsPerSeqID.append(currFileCounts)
-	taxIDs.setdefault(currTaxID,1)		
-
 #make header line
 header = "TaxID\t"
 for file in sys.argv[1:len(sys.argv)]:
@@ -37,6 +36,7 @@ for taxID in taxIDs:
 	line = taxID + "\t"
 	for currCounts in readsPerSeqID:
 		if( currCounts.has_key(taxID)):
+			#print currCounts
 			line = line + str(currCounts[taxID]) + "\t"
 		else:
 			line = line + "0\t"

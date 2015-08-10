@@ -30,6 +30,7 @@ parser = argparse.ArgumentParser(description="Assemble reads classified to each 
 parser.add_argument("taxonomer_out",type=str, help="taxonomer output file")
 parser.add_argument("fastq", type=str, help="fastq file on which the taxonomer output is based")
 parser.add_argument("prefix", type=str, help="prefix for output files. A directory with this name will be created")
+parser.add_argument("RefSeqs", type=str, help="fasta file with reference sequences that we want to select reads and assemble on")
 
 args=parser.parse_args()
 
@@ -38,6 +39,10 @@ print "making directory for output " + args.prefix + "\n"
 if not os.path.exists(args.prefix):
 	os.mkdir(args.prefix)
 
+RefSeqs_dictionary = {}
+RefSeqs = SeqIO.parse(args.RefSeqs,"fasta")
+for RefSeq in RefSeqs:
+	RefSeqs_dictionary[RefSeq.id] = 1
 
 print "reading from " + args.taxonomer_out + "\n"
 readsPerSeqID = {}
@@ -46,11 +51,11 @@ newFastQ_list = []
 taxon_out = open(args.taxonomer_out, 'r')
 for line in taxon_out:
 	lineParts = re.split("\t",line,maxsplit=4)
-	if(lineParts[0] == "C"):
+	if(lineParts[0] == "C" and RefSeqs_dictionary.get(lineParts[3])):
 		re.compile("_")
 		IDParts = re.split("_",lineParts[1])
 		newID = str(" ").join(IDParts)
-		print "newID is:\t" + newID
+#		print "newID is:\t" + newID
 		readsPerSeqID[IDParts[0]] = lineParts[3]
 		if(lineParts[3] in SeqIDsFileHandles):
 			#ddooo
@@ -58,9 +63,10 @@ for line in taxon_out:
 		else:
 			handleName = args.prefix + "/" + lineParts[3] + ".classified_reads.fastq"
 			newFastQ_list.append(handleName)
-			curr_handle = open(handleName,"w")
+			#curr_handle = open(handleName,"w")
+
 			print "opened this file handle:\t" + handleName + "\n"	
-			SeqIDsFileHandles[lineParts[3]] = curr_handle
+			SeqIDsFileHandles[lineParts[3]] = handleName
 
 #foreach key in reads_per_seqID
 #open the old fastqs, subsample based on the taxonomer output
@@ -70,16 +76,17 @@ oldFastQ = SeqIO.parse(args.fastq, "fastq")
 recordCount = 0
 for record in oldFastQ:
 	recordCount = recordCount + 1
-	print "read this many records:\t" + str(recordCount)
-	print "recor.id is:\t" + record.id + "\n"
+#	print "read this many records:\t" + str(recordCount)
+#	print "recor.id is:\t" + record.id + "\n"
 	if(record.id in readsPerSeqID):
 		print "matched to " + record.id
-		curr_handle = SeqIDsFileHandles[readsPerSeqID[record.id]]
-		SeqIO.write([record], curr_handle, "fastq")	
+		#curr_handle = SeqIDsFileHandles[readsPerSeqID[record.id]]
+		#SeqIO.write([record], curr_handle, "fastq")	
+		currFilename = SeqIDsFileHandles[readsPerSeqID[record.id]]
+		curr_handle = open(currFilename,'a')
+		SeqIO.write([record],curr_handle,"fastq")
+		curr_handle.close()		
 			
-for seqID in SeqIDsFileHandles:
-	curr_handle = SeqIDsFileHandles[seqID]
-	curr_handle.close()
 #assemble the new fastq with velvet
 #hardcode a path to velvet here
 
@@ -97,4 +104,8 @@ for fastQ in newFastQ_list:
 	velvetG_command = velvetBin + "/" + "velvetg" + " " + velvetDir + " -cov_cutoff auto -exp_cov auto "
 	print velvetG_command
 	subprocess.call(velvetG_command,shell=True)
-print "finished\n"	
+
+			
+
+print "finished\n"
+	

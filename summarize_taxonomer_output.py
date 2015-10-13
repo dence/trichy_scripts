@@ -46,10 +46,6 @@ for record in record_dict:
 			line = line + str(currCounts[taxID]) + "\t"
 		else:
 			line = line + "0\t"
-<<<<<<< HEAD
-	line = line	
-=======
->>>>>>> e695e7fedcdb804dd57736ca4506e5af4badc552
 	print line
 #print str(readsPerSeqID)
 

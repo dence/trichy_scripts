@@ -14,7 +14,7 @@ import subprocess
 
 parser = argparse.ArgumentParser(description="summary the number and length of est2genome hits, the input for the alignments")
 parser.add_argument("RefSeq",type=str,help="fasta file of all the sequences you made alignemnts for")
-parser.add_argument("est2genome_files",nargs=+,type=str,helpo="list of est2genome fasta files")
+parser.add_argument("est2genome_files",nargs=+,type=str,help="list of est2genome fasta files")
 
 
 args = parser.parse_args()

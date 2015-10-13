@@ -30,7 +30,7 @@ for file in sys.argv[2:len(sys.argv)]:
 header = "TaxID\tSeqLength\t"
 for file in sys.argv[2:len(sys.argv)]:
 	header = header + file + "\t"
-header = header + "\n"
+header = header
 #print str(taxIDs)
 
 record_dict = SeqIO.to_dict(SeqIO.parse(open(sys.argv[1],'r'),"fasta"))
@@ -46,7 +46,10 @@ for record in record_dict:
 			line = line + str(currCounts[taxID]) + "\t"
 		else:
 			line = line + "0\t"
+<<<<<<< HEAD
 	line = line	
+=======
+>>>>>>> e695e7fedcdb804dd57736ca4506e5af4badc552
 	print line
 #print str(readsPerSeqID)
 

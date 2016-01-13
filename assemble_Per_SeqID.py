@@ -111,26 +111,30 @@ else:
 			newFastQ_list.append(args.prefix + "/" + file)
 #assemble the new fastq with velvet
 #hardcode a path to velvet here
-for fastQ in newFastQ_list:
-	print "running velvet for " + fastQ + "\n"
-	velvetDir=fastQ + "_velvet"
-	velvetBin = "/home/dence/applications/velvet/"
-	mkdir_command = "mkdir " + velvetDir
-	if not os.path.exists(velvetDir):
-		print mkdir_command
-	        os.mkdir(velvetDir)
-	#check whether velvet finished running
-	if not os.path.exists(velvetDir + "/" + "contigs.fa"):
-		velvetH_command = velvetBin + "/" + "velveth" + " " + velvetDir + " 29 " + " -fastq " + fastQ 
-		print velvetH_command
-		subprocess.call(velvetH_command,shell=True)
-		velvetG_command = velvetBin + "/" + "velvetg" + " " + velvetDir + " -cov_cutoff auto -exp_cov auto "
-		print velvetG_command
-		subprocess.call(velvetG_command,shell=True)
-	else:
-		print "Finished running velvet for:\t" + velvetDir + "/" + "contigs.fa"
+if(assemble > 0):
+	for fastQ in newFastQ_list:
+		print "running velvet for " + fastQ + "\n"
 
-			
+		velvetDir=fastQ + "_velvet"
+		velvetBin = "/home/dence/applications/velvet/"
+		mkdir_command = "mkdir " + velvetDir
+		if not os.path.exists(velvetDir):
+			print mkdir_command
+		        os.mkdir(velvetDir)
+		#check whether velvet already ran
+		if not os.path.exists(velvetDir + "/" + "contigs.fa"):
+			velvetOptimiser_command = "perl /home/dence/applications/VelvetOptimiser/VelvetOptimiser.pl "
+			velvetOptimiser_command = velvetOptimiser_command + " -prefix " + velvetDir + " -f \'-short -fastq " + fastQ + "\'" + " -t 10 --optFuncKmer \'max\' --optFuncCov \'n50*Lcon/tbp+log(Lbp)\'"
+			print velvetOptimiser_command
+			subprocess.call(velvetOptimiser_command,shell=True) 
+			velvetH_command = velvetBin + "/" + "velveth" + " " + velvetDir + " 21 " + " -fastq " + fastQ 
+			print velvetH_command
+			subprocess.call(velvetH_command,shell=True)
+			velvetG_command = velvetBin + "/" + "velvetg" + " " + velvetDir + " -cov_cutoff auto -exp_cov auto "
+			print velvetG_command
+			subprocess.call(velvetG_command,shell=True)
+		else:
+			print "Finished running velvet for:\t" + velvetDir + "/" + "contigs.fa"
 
 print "finished\n"
 	

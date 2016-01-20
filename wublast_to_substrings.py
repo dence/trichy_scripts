@@ -24,6 +24,12 @@ for line in blastResults:
 	queryID = lineParts[0]
 	queryStart = int(lineParts[17])
 	queryEnd = int(lineParts[18])
+
+	#print "query ID is:\t" + queryID
+	#print "query start is:\t" + str(queryStart)
+	#print "query end is:\t" + str(queryEnd)
+	
+
 	blastResultsMap[queryID] = (queryStart,queryEnd)
 
 blastHits = []
@@ -33,7 +39,7 @@ for query in fasta:
 	hitSeq = ""
 	hitName = ""
 
-	print "query is:\t" + query.id
+	#print "query is:\t" + query.id
 
 	try:
 		queryHitStart = blastResultsMap[query.id][0]
@@ -41,13 +47,17 @@ for query in fasta:
 		hitSeq = query.seq[queryHitStart - 1:queryHitEnd]
 
 		if(queryHitEnd < queryHitStart):
-			hitSeq = query.seq[queryHitStart - 1:queryHitEnd].reverse_complement()
-		hitName = query.id + ".blast.hit"
+			#print "going here:"
+			tmpSeq = query.seq[queryHitEnd:queryHitStart - 1]
+			#print "tmpseq is:\t" + tmpSeq
+			hitSeq = tmpSeq.reverse_complement()
+			#print "hit seq is:\t" + hitSeq
+		hitName = query.id
 	except KeyError:
 		hitSeq = query.seq
-		hitName = query.id + ".no_blast_hit"	
+		hitName = query.id
 
-	print "query hit seq is:\t" + hitSeq			
+	#print "query hit seq is:\t" + hitSeq			
 		
 	newRecord = SeqRecord(hitSeq, id=hitName,name=hitName,description="")
 	blastHits.append(newRecord)

@@ -50,6 +50,26 @@ def make_command_duples(RefSeq_file, maker_directories):
 		duples.append(curr_duple)
 	return duples								
 
+def find_longest_protein2genome_hit(Seq_obj_name,curr_gff):
+	gff_handle = open(curr_gff,'r')
+
+	longest_hit = ""
+	longest_length = 0
+	for line in gff_handle:
+		seqname = line.split("\t")[0]
+		if(re.search(Seq_obj_name,seqname) and re.search("\tprotein_match\t",line)):
+			curr_start = int(line.split("\t")[3])
+                        curr_stop = int(line.split("\t")[4])
+			length_of_hit = curr_start - curr_stop
+			if(length_of_hit < 0):
+				length_of_hit = longest_length * -1
+			if(length_of_hit > longest_length):
+				longest_length = length_of_hit
+				longest_hit = line
+	if(longest_length > 0):
+			new_record = make_new_SeqRecord(longest_hit, 
+	return new_record
+
 def find_longest_est2genome_hit(Seq_obj_name, curr_dir):
 
 	datastore_file = re.sub("\.maker\.output","_datastore",curr_dir)
@@ -71,6 +91,8 @@ def find_longest_est2genome_hit(Seq_obj_name, curr_dir):
 				tmp_refseq = seq_dir.split("/")[len(seq_dir.split("/")) - 2].replace(".","%2E")#hardcoded this conversion
 				gff_file = curr_dir + "/" + seq_dir + "/" +  tmp_refseq + ".gff"
 				if(has_est2genome_hit(gff_file) and length_of_hit(gff_file) > 0):
+					print "Found est2genome hit in this file:\t" + gff_file
+					print "for this sample Seq_obj_name"
 					longest_length = length_of_hit(gff_file)
 					longest_hit = gff_file
 				else:
@@ -93,7 +115,7 @@ def has_est2genome_hit(gff_file):
 			bool = 1
 	return bool
 
-def make_new_SeqRecord(gff_file, curr_sample_dir):
+def make_new_SeqRecord(gff_file, curr_sample_fasta):
 	hit_SeqID = ""
 	hit_start = 0
 	hit_stop = 0
@@ -146,6 +168,8 @@ def length_of_hit(gff_file):
 			break
 	gff_handle.close()
 
+	if(length < 0):
+		length = length * -1
 	return length 
 	
 def gather_and_align_est2genome_hits(command_duple):
@@ -159,14 +183,19 @@ def gather_and_align_est2genome_hits(command_duple):
 	
 	SeqIO.write(Seq_obj,new_filehandle,"fasta")
 
-	for curr_dir in maker_directories:
-		
-		#using the the output directory got confusing 
-		#est2genome_Seq_obj = find_longest_est2genome_hit(Seq_obj.id, "../" + curr_dir)
-		est2genome_Seq_obj = find_longest_est2genome_hit(Seq_obj.id, curr_dir)
-		
-		if(est2genome_Seq_obj.id != ""):
-			SeqIO.write(est2genome_Seq_obj, new_filehandle,"fasta")
+	for curr_gff in maker_directories:
+		protein2genome_Seq_obj = find_longest_protein2genome_hit(Seq_obj.id, curr_gff)
+
+		if(protein2genome_Seq_obj.id != ""):
+			SeqIO.write(protein2genome_Seq_obj, new_filehandle,"fasta")
+	#for curr_dir in maker_directories:
+	#	
+	#	#using the the output directory got confusing 
+	#	#est2genome_Seq_obj = find_longest_est2genome_hit(Seq_obj.id, "../" + curr_dir)
+	#	est2genome_Seq_obj = find_longest_est2genome_hit(Seq_obj.id, curr_dir)
+	#	
+	#	if(est2genome_Seq_obj.id != ""):
+	#		SeqIO.write(est2genome_Seq_obj, new_filehandle,"fasta")
 
 	new_filehandle.close()
 	print "finished with this file:\t" + est2genome_fasta

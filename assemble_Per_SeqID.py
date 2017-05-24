@@ -22,6 +22,10 @@ import subprocess
 from Bio import SeqIO
 import re
 
+import multiprocessing as mp
+
+import pdb
+
 #read in the taxonomer output
 #put read IDs in a hash, mapped to the seqID to which they were classified
 
@@ -31,6 +35,7 @@ parser.add_argument("fastq", type=str, help="fastq file on which the taxonomer o
 parser.add_argument("prefix", type=str, help="prefix for output files. A directory with this name will be created")
 parser.add_argument("RefSeqs", type=str, help="fasta file with reference sequences that we want to select reads and assemble on")
 parser.add_argument("steps",type=str,help="which steps to to run. Valid values are \"all\",\"fastq\",and\"assemble\"")
+parser.add_argument("nprocs", type=int, help="number of concurrent velvet jobs to run")
 args=parser.parse_args()
 
 fastq=0
@@ -60,8 +65,6 @@ if(fastq > 0):
 
 	print "reading from " + args.taxonomer_out + "\n"
 	readsPerSeqID = {}
-	#SeqIDsFileHandles = {}
-	#newFastQ_list = []
 	taxon_out = open(args.taxonomer_out, 'r')
 	for line in taxon_out:
 		lineParts = re.split("\t",line,maxsplit=4)
@@ -88,7 +91,6 @@ if(fastq > 0):
 	#		print "matched to this ID:\t" + record.id
 			currTaxa = readsPerSeqID[record.id]
 			readsFromOldFastq.setdefault(currTaxa,[]).append(record)
-		#recordCount = recordCount + 1
 	stopFastqTime = time.clock()
 	elapsed = stopFastqTime - startFastqTime
 	print "Took this long to go through the fastq file:\t" + str(elapsed)
@@ -112,22 +114,29 @@ else:
 #assemble the new fastq with velvet
 #hardcode a path to velvet here
 if(assemble > 0):
+	
+	velvet_to_run = []
 	for fastQ in newFastQ_list:
 		print "running velvet for " + fastQ + "\n"
 
+		#for a pooled (multiple processor) version, 
+		#first go through the existing velvet directories
+		#to find what we still need to run
+		#if a directory isn't there or if the contigs.fa isn't
+		# there, then we need to run velvet
 		velvetDir=fastQ + "_velvet"
 		velvetBin = "/home/dence/applications/velvet/"
 		mkdir_command = "mkdir " + velvetDir
+
 		if not os.path.exists(velvetDir):
 			print mkdir_command
 		        os.mkdir(velvetDir)
+			velvet_to_run.append(fastQ)
 		#check whether velvet already ran
 		if not os.path.exists(velvetDir + "/" + "contigs.fa"):
-			velvetOptimiser_command = "perl /home/dence/applications/VelvetOptimiser/VelvetOptimiser.pl "
-			velvetOptimiser_command = velvetOptimiser_command + " -prefix " + velvetDir + " -f \'-short -fastq " + fastQ + "\'" + " -t 10 --optFuncKmer \'max\' --optFuncCov \'n50*Lcon/tbp+log(Lbp)\'"
-			print velvetOptimiser_command
-			subprocess.call(velvetOptimiser_command,shell=True) 
-			velvetH_command = velvetBin + "/" + "velveth" + " " + velvetDir + " 21 " + " -fastq " + fastQ 
+			velvet_to_run.append(fastQ)	
+			
+			velvetH_command = velvetBin + "/" + "velveth" + " " + velvetDir + " 29 " + " -fastq " + fastQ 
 			print velvetH_command
 			subprocess.call(velvetH_command,shell=True)
 			velvetG_command = velvetBin + "/" + "velvetg" + " " + velvetDir + " -cov_cutoff auto -exp_cov auto "
@@ -135,6 +144,10 @@ if(assemble > 0):
 			subprocess.call(velvetG_command,shell=True)
 		else:
 			print "Finished running velvet for:\t" + velvetDir + "/" + "contigs.fa"
+
+	for fastQ in velvet_to_run:
+		pool = mp.Pool(processes=args.nprocs)
+		pool.map(assemble_fastq, command_duples)
 
 print "finished\n"
 	

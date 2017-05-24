@@ -26,11 +26,19 @@ import multiprocessing as mp
 
 import glob
 
+import copy_reg
+import types
 import pdb
 
 def main(outputDirectory,cpus):
 	tmp = assemble_fastqs(outputDirectory)
 	tmp.assemble_batch_fastqs(cpus)
+
+#author: Sri's answer in this thread
+#http://stackoverflow.com/questions/11726809/python-efficient-workaround-for-multiprocessing-a-function-that-is-a-data-membe
+def _reduce_method(meth):
+	return (getattr,(meth.__self__,meth.__func__.__name__))
+copy_reg.pickle(types.MethodType,_reduce_method)
 
 class assemble_fastqs():
 
@@ -51,7 +59,7 @@ class assemble_fastqs():
                 pool = mp.Pool(processes=int(cpus))
                 pool.map(self.assemble_fastq, fastqs)
                 #map(self.assemble_fastq, fastqs)
-	
+
 	def assemble_fastq(self, fastq):
 		print "running velvet for " + fastq + "\n"
 		velvetDir = fastq + "_velvet"
